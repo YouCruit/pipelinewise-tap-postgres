@@ -9,7 +9,7 @@ from singer import metadata as metadata_util
 from tap_postgres.db import open_connection
 from tap_postgres.discovery_utils import discover_db
 
-LOGGER = singer.get_logger('tap_postgres')
+LOGGER = singer.get_logger("tap_postgres")
 
 
 def dump_catalog(all_streams: List[Dict]) -> None:
@@ -18,7 +18,7 @@ def dump_catalog(all_streams: List[Dict]) -> None:
     Args:
         all_streams: List of streams to dump
     """
-    json.dump({'streams': all_streams}, sys.stdout, indent=2)
+    json.dump({"streams": all_streams}, sys.stdout, indent=2)
 
 
 def is_selected_via_metadata(stream: Dict) -> bool:
@@ -29,29 +29,35 @@ def is_selected_via_metadata(stream: Dict) -> bool:
 
     Returns: True if selected, False otherwise.
     """
-    table_md = metadata_util.to_map(stream['metadata']).get((), {})
-    return table_md.get('selected', False)
+    table_md = metadata_util.to_map(stream["metadata"]).get((), {})
+    return table_md.get("selected", False)
 
 
-def clear_state_on_replication_change(state: Dict,
-                                      tap_stream_id: str,
-                                      replication_key: str,
-                                      replication_method: str) -> Dict:
+def clear_state_on_replication_change(
+    state: Dict, tap_stream_id: str, replication_key: str, replication_method: str
+) -> Dict:
     """
     Update state if replication method change is detected
     Returns: new state dictionary
     """
     # user changed replication, nuke state
-    last_replication_method = singer.get_bookmark(state, tap_stream_id, 'last_replication_method')
-    if last_replication_method is not None and (replication_method != last_replication_method):
+    last_replication_method = singer.get_bookmark(
+        state, tap_stream_id, "last_replication_method"
+    )
+    if last_replication_method is not None and (
+        replication_method != last_replication_method
+    ):
         state = singer.reset_stream(state, tap_stream_id)
 
     # key changed
-    if replication_method == 'INCREMENTAL' and \
-            replication_key != singer.get_bookmark(state, tap_stream_id, 'replication_key'):
+    if replication_method == "INCREMENTAL" and replication_key != singer.get_bookmark(
+        state, tap_stream_id, "replication_key"
+    ):
         state = singer.reset_stream(state, tap_stream_id)
 
-    state = singer.write_bookmark(state, tap_stream_id, 'last_replication_method', replication_method)
+    state = singer.write_bookmark(
+        state, tap_stream_id, "last_replication_method", replication_method
+    )
 
     return state
 
@@ -61,26 +67,30 @@ def refresh_streams_schema(conn_config: Dict, streams: List[Dict]):
     Updates the streams schema & metadata with new discovery
     The given streams list of dictionaries would be mutated and updated
     """
-    LOGGER.debug('Refreshing streams schemas ...')
+    LOGGER.debug("Refreshing streams schemas ...")
 
-    LOGGER.debug('Current streams schemas %s', streams)
+    LOGGER.debug("Current streams schemas %s", streams)
 
     # Run discovery to get the streams most up to date json schemas
     with open_connection(conn_config) as conn:
         new_discovery = {
-            stream['tap_stream_id']: stream
-            for stream in discover_db(conn, conn_config.get('filter_schemas'), [st['table_name'] for st in streams])
+            stream["tap_stream_id"]: stream
+            for stream in discover_db(
+                conn,
+                conn_config.get("filter_schemas"),
+                [st["table_name"] for st in streams],
+            )
         }
 
-    LOGGER.debug('New discovery schemas %s', new_discovery)
+    LOGGER.debug("New discovery schemas %s", new_discovery)
 
     # For every stream, update the schema and metadata from the corresponding discovered stream
     for idx, stream in enumerate(streams):
-        discovered_stream = new_discovery[stream['tap_stream_id']]
-        streams[idx]['schema'] = _merge_stream_schema(stream, discovered_stream)
-        streams[idx]['metadata'] = _merge_stream_metadata(stream, discovered_stream)
+        discovered_stream = new_discovery[stream["tap_stream_id"]]
+        streams[idx]["schema"] = _merge_stream_schema(stream, discovered_stream)
+        streams[idx]["metadata"] = _merge_stream_metadata(stream, discovered_stream)
 
-    LOGGER.debug('Updated streams schemas %s', streams)
+    LOGGER.debug("Updated streams schemas %s", streams)
 
 
 def _merge_stream_schema(stream, discovered_stream):
@@ -88,13 +98,21 @@ def _merge_stream_schema(stream, discovered_stream):
     A discovered stream doesn't include any schema overrides from the catalog
     file. Merges overrides from the catalog file into the discovered schema.
     """
-    discovered_schema = copy.deepcopy(discovered_stream['schema'])
+    discovered_schema = copy.deepcopy(discovered_stream["schema"])
 
-    for column, column_schema in stream['schema']['properties'].items():
-        if column in discovered_schema['properties'] and column_schema != discovered_schema['properties'][column]:
-            override = copy.deepcopy(stream['schema']['properties'][column])
-            LOGGER.info('Overriding schema for %s.%s with %s', stream['tap_stream_id'], column, override)
-            discovered_schema['properties'][column].update(override)
+    for column, column_schema in stream["schema"]["properties"].items():
+        if (
+            column in discovered_schema["properties"]
+            and column_schema != discovered_schema["properties"][column]
+        ):
+            override = copy.deepcopy(stream["schema"]["properties"][column])
+            LOGGER.info(
+                "Overriding schema for %s.%s with %s",
+                stream["tap_stream_id"],
+                column,
+                override,
+            )
+            discovered_schema["properties"][column].update(override)
 
     return discovered_schema
 
@@ -106,8 +124,8 @@ def _merge_stream_metadata(stream, discovered_stream):
     arbitrary overridden metadata from the catalog file. Merges the discovered
     metadata into the metadata from the catalog file.
     """
-    stream_md = metadata_util.to_map(stream['metadata'])
-    discovery_md = metadata_util.to_map(discovered_stream['metadata'])
+    stream_md = metadata_util.to_map(stream["metadata"])
+    discovery_md = metadata_util.to_map(discovered_stream["metadata"])
 
     for breadcrumb, metadata in discovery_md.items():
         if breadcrumb in stream_md:
@@ -123,9 +141,11 @@ def any_logical_streams(streams, default_replication_method):
     Checks if streams list contains any stream with log_based method
     """
     for stream in streams:
-        stream_metadata = metadata_util.to_map(stream['metadata'])
-        replication_method = stream_metadata.get((), {}).get('replication-method', default_replication_method)
-        if replication_method == 'LOG_BASED':
+        stream_metadata = metadata_util.to_map(stream["metadata"])
+        replication_method = stream_metadata.get((), {}).get(
+            "replication-method", default_replication_method
+        )
+        if replication_method == "LOG_BASED":
             return True
 
     return False
