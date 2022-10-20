@@ -147,7 +147,7 @@ def sync_table(conn_info, stream, state, desired_columns, md_map):
                                 "replication_key_value",
                                 record_message.record[replication_key],
                             )
-                    except KeyError as e:
+                    except KeyError:
                         # Replication key not present in table - treat like None
                         pass
 
