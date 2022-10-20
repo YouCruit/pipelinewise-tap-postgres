@@ -294,6 +294,22 @@ def register_type_adapters(conn_config):
     """
     with post_db.open_connection(conn_config) as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            # typname
+            ## int4range
+            ## tstzrange
+            ## geometry
+            ## point
+
+            # int4range
+            cur.execute("SELECT typarray FROM pg_type where typname = 'int4range'")
+            int4range_oid = cur.fetchone()
+            if int4range_oid:
+                psycopg2.extensions.register_type(
+                    psycopg2.extensions.new_array_type(
+                        (int4range_oid[0],), "INT4RANGE", psycopg2.STRING
+                    )
+                )
+
             # citext[]
             cur.execute("SELECT typarray FROM pg_type where typname = 'citext'")
             citext_array_oid = cur.fetchone()
