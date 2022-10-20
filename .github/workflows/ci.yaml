@@ -35,7 +35,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup virtual environment
-        run: make venv
+        #run: make venv
+        run: pip install poetry && poetry install
 
       - name: Pylinting
         run: make pylint
