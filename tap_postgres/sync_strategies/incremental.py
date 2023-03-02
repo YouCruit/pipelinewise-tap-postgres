@@ -57,11 +57,11 @@ def sync_table(conn_info, stream, state, desired_columns, md_map):
 
     replication_key = md_map.get((), {}).get('replication-key')
     if not replication_key:
-        raise ValueError(f"No primary key present in {stream['table_name']} but that is required for INCREMENTAL sync")
+        raise ValueError(f"No replication key present in {stream['table_name']} but that is required for INCREMENTAL sync")
     replication_key_value = singer.get_bookmark(state, stream['tap_stream_id'], 'replication_key_value')
     replication_key_prop = md_map.get(('properties', replication_key))
     if not replication_key_prop:
-        raise ValueError(f"No type information on primary key in {stream['table_name']}")
+        raise ValueError(f"No type information on replication key in {stream['table_name']}")
     replication_key_sql_datatype = replication_key_prop.get('sql-datatype')
 
     hstore_available = post_db.hstore_available(conn_info)
