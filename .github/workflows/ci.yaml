@@ -13,7 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.6, 3.7, 3.8 ]
+        python-version:
+          - "3.9"
+          - "3.10"
 
     services:
       test_postgres:
@@ -34,8 +36,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Setup virtual environment
-        run: make venv
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Poetry install
+        run: poetry install
 
       - name: Pylinting
         run: make pylint

@@ -30,7 +30,7 @@ def fetch_max_replication_key(conn_config, replication_key, schema_name, table_n
             return max_key
 
 
-# pylint: disable=too-many-locals
+# pylint: disable=too-many-locals,too-many-statements
 def sync_table(conn_info, stream, state, desired_columns, md_map):
     time_extracted = utils.now()
 
@@ -121,17 +121,17 @@ def sync_table(conn_info, stream, state, desired_columns, md_map):
                     singer.write_message(record_message)
                     rows_saved = rows_saved + 1
 
-                    #Picking a replication_key with NULL values will result in it ALWAYS been synced which is not great
-                    #event worse would be allowing the NULL value to enter into the state
+                    # Picking a replication_key with NULL values will result in it ALWAYS been synced which is not great
+                    # even worse would be allowing the NULL value to enter into the state
                     try:
                         if record_message.record[replication_key] is not None:
                             state = singer.write_bookmark(state,
                                                           stream['tap_stream_id'],
                                                           'replication_key_value',
                                                           record_message.record[replication_key])
-                    except KeyError as e:
+                    except KeyError:
                         # Replication key not present in table - treat like None
-                        pass
+                        LOGGER.info("Primary key was NULL in %s", stream['table_name'])
 
                     if rows_saved % UPDATE_BOOKMARK_PERIOD == 0:
                         singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
