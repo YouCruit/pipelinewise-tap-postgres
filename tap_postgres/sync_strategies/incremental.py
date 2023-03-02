@@ -131,7 +131,7 @@ def sync_table(conn_info, stream, state, desired_columns, md_map):
                                                           record_message.record[replication_key])
                     except KeyError:
                         # Replication key not present in table - treat like None
-                        LOGGER.info("Primary key was NULL in %s", stream['table_name'])
+                        LOGGER.info("Replication key was NULL in %s", stream['table_name'])
 
                     if rows_saved % UPDATE_BOOKMARK_PERIOD == 0:
                         singer.write_message(singer.StateMessage(value=copy.deepcopy(state)))
