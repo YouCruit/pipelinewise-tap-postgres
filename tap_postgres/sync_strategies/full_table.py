@@ -49,6 +49,7 @@ def sync_view(conn_info, stream, state, desired_columns, md_map):
                                                                                            stream['table_name']))
 
                 LOGGER.info("select %s with itersize %s", select_sql, cur.itersize)
+                LOGGER.info(select_sql)
                 cur.execute(select_sql)
 
                 rows_saved = 0
